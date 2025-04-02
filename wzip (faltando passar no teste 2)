@@ -1,0 +1,74 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+//UTILIZAR DA STRUCT COM A FUNÇÃO FWRITE() NÃO DEU CERTO!!!
+//a função fwrite possivelmente só é capaz de processar vetores, não uma variável struct!!!
+//será utilizado para armazenar os valores de escrita
+//struct expression {
+//    int *buffer_int;
+//    char *buffer_caractere;
+//};
+//typedef struct expression exp;
+
+//argv é um vetor de strings
+int main (int argc, char* argv[]) {
+    
+    //valor ascii 0 = \0 (caractere nulo)
+    int i, caractere_ascii, *buffer_int, contador = 0, anterior = 0;
+    FILE *file_pointer;
+    char temp, *buffer_caractere;
+    //exp *expression = malloc(sizeof(exp));
+
+    if (argc == 1) {
+        printf("wzip: file1 [file2 ...]\n");
+        exit(1);
+    }
+    else if (argc > 1) {
+        //comprimindo um ou mais arquivos em uma única saída
+        for(i = 1; i < argc; i++) {
+            //verificar se essa leitura deve ser realizada realmente em binário!!!!
+            file_pointer = fopen(argv[i], "rb");
+            if (file_pointer == NULL) {
+                printf("wzip: cannot open file\n");
+                exit(1);
+            }
+            //já tendo a stream referente ao arquivo em mãos, agora é necessário comprimir o arquivo
+            //podemos fazer uma verificação caractere a caractere, buscando pelo número de repetição desses caracteres
+            //utilizando um contador, será possível ter salvo o número de repetições de um determinado caractere
+            do {
+                caractere_ascii = fgetc(file_pointer);
+                if (caractere_ascii != anterior) {
+                    //pensar sobre como tratar espaços em branco ou quebra de linha
+                    //arquivo texto não lida com quebra de linhas, por isso é importante ler o arquivo texto como binário, nesse caso...
+                    //tentar corrigir o código!!!! tentar implementar um dicionário para considerar todos os caracteres dentro de um arquivo
+                    if ((contador != 0)) {
+                        //printando o caractere anterior antes de redefinir a contagem                        
+                        buffer_int = &contador;
+                        //deve ser escrito o inteiro com 4 bytes em sua forma binária seguido do valor ascii de 1 byte do caractere repetido 
+                        //num_elementos = 1
+                        //por que não está printando outros elementos como espaço em branco ou quebra de linha???!!!
+                        fwrite(buffer_int, sizeof(*buffer_int), 1, stdout);
+                        //supostamente, ocorre uma conversão implícita do valor ascii para o caractere especificado
+                        temp = anterior;
+                        buffer_caractere = &temp;
+                        fwrite(buffer_caractere, sizeof(*buffer_caractere), 1, stdout);
+                    }                                                                                                      
+                    //redefinindo a contagem para um novo caractere
+                    //analisando o código, caso ocorra a abertura de um novo arquivo, é possível que ele continue com a escrita como se realmente existisse um arquivo único de entrada
+                    anterior = caractere_ascii;
+                    contador = 1;                
+                }
+                else if (caractere_ascii == anterior) {
+                    //caso o caractere se repita, o contador é atualizado
+                    contador++;
+                }
+                //se algum erro ocorrer na leitura do arquivo ou o fim do arquivo for alcançado, a leitura será interrompida!
+                //a posição de leitura/escrita dentro do arquivo é atualizada automaticamente pelas funções de manipulação do arquivo
+                //portanto, é possível utilizar dessas funções abaixo de uma forma bem simples
+            }while ((feof(file_pointer) == 0) && (ferror(file_pointer) == 0));
+            //fecha o identificador do arquivo antes da abertura de um próximo, economizando os recursos do sistema
+            fclose(file_pointer);
+        }
+    }
+    return 0;
+}
